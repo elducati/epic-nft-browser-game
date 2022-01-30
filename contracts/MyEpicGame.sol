@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^ 0.8 .0;
+pragma solidity ^ 0.8.0;
 // Helper we wrote to encode in Base64
 import "./libraries/Base64.sol";
 // NFT contract to inherit from.
@@ -49,6 +49,9 @@ BigBoss public bigBoss;
 // A mapping from an address => the NFTs tokenId. Gives me an ez way
 // to store the owner of the NFT and reference it later.
 mapping(address => uint256)public nftHolders;
+
+event CharacterNFTMinted(address sender, uint256 tokenId, uint256 characterIndex);
+event AttackComplete(uint newBossHp, uint newPlayerHp);
 
 // Data passed in to the contract when it's first created initializing the characters.
 // We're going to actually pass these values in from run.js.
@@ -115,6 +118,7 @@ function mintCharacterNFT(uint _characterIndex)external { // Get current tokenId
 
     // Increment the tokenId for the next person that uses it.
     _tokenIds.increment();
+    emit CharacterNFTMinted(msg.sender, newItemId, _characterIndex);
 }
 function tokenURI(uint256 _tokenId)public view override returns(string memory) {
     CharacterAttributes memory charAttributes = nftHolderAttributes[_tokenId];
@@ -158,9 +162,29 @@ function attackBoss()public {
     player.hp = 0;
   } else {
     player.hp = player.hp - bigBoss.attackDamage;
-  }
-  
+  }  
   // Console for ease.
   console.log("Player attacked boss. New boss hp: %s", bigBoss.hp);
   console.log("Boss attacked player. New player hp: %s\n", player.hp);
-}}
+  emit AttackComplete(bigBoss.hp, player.hp);
+}
+function checkIfUserHasNFT() public view returns (CharacterAttributes memory) {
+  // Get the tokenId of the user's character NFT
+  uint256 userNftTokenId = nftHolders[msg.sender];
+  // If the user has a tokenId in the map, return their character.
+  if (userNftTokenId > 0) {
+    return nftHolderAttributes[userNftTokenId];
+  }
+  // Else, return an empty character.
+  else {
+    CharacterAttributes memory emptyStruct;
+    return emptyStruct;
+   }
+}
+function getAllDefaultCharacters() public view returns (CharacterAttributes[] memory) {
+  return defaultCharacters;
+}
+function getBigBoss() public view returns (BigBoss memory) {
+  return bigBoss;
+}
+}
